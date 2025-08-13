@@ -1,6 +1,41 @@
+# streamlit_app.py
 import streamlit as st
-st.title('나의 첫 웹 서비스 만들기!!')
-name = st.text_input('이름을 입력해주세요 : ')
-menu = st.selectbox('좋아하는 음식을 선택해주세요:', ['망고빙수','아몬드봉봉'])
-if st.button('인사말 생성') : 
-  st.write(name+'님! 당신이 좋아하는 음식은 '+menu+'이군요?! 저도 좋아요!!')
+import pandas as pd
+import altair as alt
+
+# CSV 불러오기
+df = pd.read_csv("countriesMBTI_16types.csv")
+
+# 국가 목록
+countries = df["Country"].unique()
+
+# Streamlit UI
+st.title("국가별 MBTI 비율 TOP 10")
+selected_country = st.selectbox("국가를 선택하세요:", countries)
+
+# 선택한 국가의 데이터만 추출
+row = df[df["Country"] == selected_country].iloc[0]
+mbti_data = row.drop("Country")
+
+# 비율 순으로 정렬
+mbti_df = pd.DataFrame({
+    "MBTI": mbti_data.index,
+    "비율": mbti_data.values
+}).sort_values("비율", ascending=False).head(10)
+
+# Altair 그래프
+chart = (
+    alt.Chart(mbti_df)
+    .mark_bar()
+    .encode(
+        x=alt.X("비율", title="비율", scale=alt.Scale(domain=[0, mbti_df["비율"].max()*1.1])),
+        y=alt.Y("MBTI", sort="-x", title="MBTI 유형"),
+        tooltip=["MBTI", "비율"]
+    )
+    .properties(width=600, height=400)
+)
+
+st.altair_chart(chart, use_container_width=True)
+
+# 데이터 테이블 표시
+st.dataframe(mbti_df)
